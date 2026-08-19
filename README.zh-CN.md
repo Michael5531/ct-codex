@@ -61,23 +61,17 @@ npx -y ct-codex install --bin-dir "$HOME/bin"
 
 ## 功能截图
 
-### 常驻查看容量和吞吐量
+### 常驻查看 Codex Context 信号和吞吐量
 
 ![终端状态栏中的上下文进度、当前模型、未命中缓存 token 与缓存 token](docs/images/01-context-bar.svg)
 
-进度条显示当前 prompt 上下文相对于活动模型窗口的占用。**Uncached** 单独统计本 session 的 token 吞吐量，因此不会被误认为上下文容量或发票。
+进度条直接复刻 Codex CLI 从活动 rollout 记录得出的 Context 算法；它不抓取终端屏幕，也不依赖 `/statusline`。**Uncached** 单独统计本 session 的 token 吞吐量，因此不会被误认为上下文容量或发票。
 
 ### 让每个终端标签页保持独立
 
 ![两个独立的终端标签页，各自拥有 ct-codex tmux session 和 token 状态栏](docs/images/02-tab-isolation.svg)
 
 每个外层终端 tab 都会得到独立的 tmux session。在某个 tab 再次运行 `ct codex` 时，只会回到属于该 tab 的 session。
-
-### 为部署匹配正确的窗口
-
-![按模型识别上下文窗口的配置示例与优先级流程](docs/images/03-model-windows.svg)
-
-当 Azure/custom 部署有特定的上下文窗口时，可使用单次覆盖或按名称映射。
 
 ## 工作方式
 
@@ -93,38 +87,20 @@ npx -y ct-codex install --bin-dir "$HOME/bin"
 tmux 底栏只追踪当前活动 pane 的 Codex rollout 文件：
 
 ```text
-Context ██░░░░░░░░░░ 4% (42.6k/1.05M) gpt-5.6-terra │ Uncached 45.8k (↑42.6k ↓3.2k) │ Cache 338.4k
+Context ██████░░░░░░ 50% used gpt-5.6-terra │ Uncached 1.1M (↑967.2k ↓144.1k) │ Cache 14.7M
 ```
 
-![ct-codex 实际运行时的底部状态栏](docs/images/status-bar-live.png)
-
-- **Context**：最新输入上下文，相对于所显示模型的上下文窗口。加宽到 12 格的进度条便于一眼判断剩余空间。
-- **模型窗口**：按当前 rollout 决定。`gpt-5.6-terra` 默认使用已确认的 1,050,000 token 窗口；其他模型会在可用时读取 Codex 写入的 `model_context_window` 遥测值。
+- **Context**：使用活动 rollout 的 `last_token_usage.total_tokens` 与 `model_context_window`，并采用与 Codex CLI 相同的 12,000 token 预留及取整顺序。12 格进度条让结果更容易一眼看清。
 - **Uncached（未命中缓存）**：当前 session 累计的未命中缓存输入 token 加输出 token。这是 token 吞吐量，不是账单金额。
 - **Cache**：缓存命中的输入 token，单独显示且不计入 **Uncached**。
 
 tmux 默认的窗口编号列表已隐藏，让状态栏只聚焦用量信息。
 
-### 上下文窗口配置
+### Context 的准确性
 
-同一个模型名称在不同 Codex/provider 部署中可能有不同的有效窗口。为保证所有 Codex 模型的进度条数值正确，选择优先级依次是：单次启动覆盖、按模型/部署名称映射、内置 Terra 数值、rollout 自身遥测。没有数值时会显示 `window unknown`，绝不猜测数值。
+`ct` 在源码层复刻 Codex CLI 0.148.0 的 Context 算法：从 rollout 窗口和最后一次请求总量中扣除 Codex 固定预留的 12,000 token，先对剩余百分比取整，再显示 `100 - 剩余`。它优先使用 rollout 实际给出的 `model_context_window`，没有时回退到 `~/.codex/config.toml` 中常规顶层的 `model_context_window`，与 Codex TUI 源码的优先级一致，不依赖模型名称表或硬编码的 Terra 数值。
 
-```sh
-# 单次启动时覆盖，适用于 Azure Foundry 部署。
-CT_CONTEXT_LIMIT=1048576 ct codex
-
-# 在 shell 配置中持久化按模型/部署名称设置的窗口。
-export CT_CONTEXT_WINDOWS='gpt-5.6-sol=262144,azure-production=1048576'
-ct codex
-```
-
-目前内置的映射为：
-
-| Codex 模型 | 上下文窗口 | 来源 |
-| --- | ---: | --- |
-| `gpt-5.6-terra` | 1,050,000 | 已确认的部署数值 |
-
-其他模型不会使用硬编码猜测值：当 Codex 提供时，活动 rollout 会给出其有效窗口的数值。如需覆盖自定义/Azure 部署的值，请添加明确的映射。
+`/statusline` 是可选项，`ct` 不会读取它。若你在其中启用 `context-remaining` 和 `context-used`，可以把它作为独立的 double-check：同一条当前 rollout 的两个数值应当一致。只有 rollout 没有可用的 context window 时，`ct` 才显示 Context 不可用。
 
 ## 命令
 

@@ -61,23 +61,17 @@ npx -y ct-codex install --bin-dir "$HOME/bin"
 
 ## See it in action
 
-### Keep capacity and throughput visible
+### Keep the Codex Context signal and throughput visible
 
 ![Context progress, active model, uncached tokens, and cache tokens in a terminal bar](docs/images/01-context-bar.svg)
 
-The progress bar shows the current prompt context against the active model window. **Uncached** tracks session token throughput separately, so it cannot be mistaken for context capacity or an invoice.
+The progress bar reimplements Codex CLI's own Context calculation from the active rollout record. It does not scrape the terminal or depend on `/statusline`. **Uncached** tracks session token throughput separately, so it cannot be mistaken for context capacity or an invoice.
 
 ### Keep terminal tabs independent
 
 ![Two separate terminal tabs with independent ct-codex tmux sessions and token bars](docs/images/02-tab-isolation.svg)
 
 Each outer terminal tab receives its own tmux session. Reattaching with `ct codex` returns only to the session that belongs to that tab.
-
-### Match the window to the deployment
-
-![Configuration and priority flow for model-aware context windows](docs/images/03-model-windows.svg)
-
-Use a one-off override or a named mapping when an Azure/custom deployment has a specific context window.
 
 ## How it behaves
 
@@ -93,38 +87,20 @@ Use a one-off override or a named mapping when an Azure/custom deployment has a 
 The bottom tmux bar tracks only the active pane's Codex rollout file:
 
 ```text
-Context ██░░░░░░░░░░ 4% (42.6k/1.05M) gpt-5.6-terra │ Uncached 45.8k (↑42.6k ↓3.2k) │ Cache 338.4k
+Context ██████░░░░░░ 50% used gpt-5.6-terra │ Uncached 1.1M (↑967.2k ↓144.1k) │ Cache 14.7M
 ```
 
-![Live ct-codex bottom status bar](docs/images/status-bar-live.png)
-
-- **Context** is the latest input context against the displayed model's context window. The wider 12-cell bar makes remaining context easier to scan at a glance.
-- **Model window** is determined per active rollout. `gpt-5.6-terra` defaults to the confirmed 1,050,000-token window; for other models, Codex's `model_context_window` telemetry is used when available.
+- **Context** uses the active rollout's `last_token_usage.total_tokens` and `model_context_window`, with the same 12,000-token reserve and rounding order as Codex CLI. The 12-cell bar makes the result easy to scan at a glance.
 - **Uncached** is uncached input plus output tokens accumulated during this session. It is token throughput, not a billing amount.
 - **Cache** is cached input tokens, shown separately and excluded from **Uncached**.
 
 The tmux window index list is deliberately hidden to keep the bar focused on usage.
 
-### Context-window configuration
+### Context accuracy
 
-Codex/provider deployments can expose different effective windows for the same model name. To keep the bar correct across all Codex models, the selection order is: launch override, named model/deployment mapping, built-in Terra value, then the rollout's own telemetry. A missing value is shown as `window unknown`, never as a guessed number.
+`ct` is a source-level reimplementation of Codex CLI 0.148.0's Context calculation: it subtracts Codex's fixed 12,000-token baseline from the rollout window and last request total, rounds the remaining percentage, then displays `100 - remaining`. It prioritizes rollout-provided `model_context_window` and falls back to the normal top-level `model_context_window` in `~/.codex/config.toml`, matching Codex TUI's source precedence without a model-name table or hard-coded Terra value.
 
-```sh
-# One launch, useful for an Azure Foundry deployment.
-CT_CONTEXT_LIMIT=1048576 ct codex
-
-# Persist model/deployment-specific windows in your shell configuration.
-export CT_CONTEXT_WINDOWS='gpt-5.6-sol=262144,azure-production=1048576'
-ct codex
-```
-
-The installed built-in mapping is currently:
-
-| Codex model | Context window | Source |
-| --- | ---: | --- |
-| `gpt-5.6-terra` | 1,050,000 | Confirmed deployment value |
-
-Other models do not use hard-coded guesses: the active rollout supplies its numeric effective window when Codex reports it. Add an explicit mapping for a custom/Azure deployment when you need to override that value.
+`/statusline` is optional and is not read by `ct`. If you enable `context-remaining` and `context-used` there, it is a useful independent double-check: the two values should match for the same current rollout. `ct` shows Context as unavailable only when the rollout has no usable context window.
 
 ## Commands
 

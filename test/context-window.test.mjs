@@ -7,22 +7,34 @@ import test from "node:test";
 const root = join(fileURLToPath(new URL("..", import.meta.url)));
 const launcher = join(root, "scripts", "ct");
 
-function resolveContextWindow(model, reportedWindow, environment = {}) {
-  return execFileSync("sh", [launcher, "_context-limit", model, String(reportedWindow)], {
+function contextUsed(totalTokens, contextWindow) {
+  return execFileSync("sh", [launcher, "_context-used", String(totalTokens), String(contextWindow)], {
     encoding: "utf8",
-    env: { ...process.env, ...environment },
-  }).trim().split("\t");
+  }).trim();
 }
 
-test("uses the confirmed Terra context window by default", () => {
-  assert.deepEqual(resolveContextWindow("gpt-5.6-terra", 124518), ["1050000", "builtin"]);
+test("reimplements Codex's 12k reserved-baseline context calculation", () => {
+  // Codex CLI: effective=124,518-12,000=112,518; remaining=90,943;
+  // round(90,943/112,518*100)=81; used=100-81=19.
+  assert.equal(contextUsed(33_575, 124_518), "19");
 });
 
-test("uses active-rollout telemetry for an unmapped Codex model", () => {
-  assert.deepEqual(resolveContextWindow("gpt-5.6-sol", 262144), ["262144", "telemetry"]);
+test("rounds remaining first, then takes its complement like Codex", () => {
+  // With this input Codex rounds remaining to 49, then takes the complement.
+  assert.equal(contextUsed(69_259, 124_518), "51");
 });
 
-test("allows launch and named model context-window overrides", () => {
-  assert.deepEqual(resolveContextWindow("gpt-5.6-terra", 124518, { CT_CONTEXT_LIMIT: "1048576" }), ["1048576", "override"]);
-  assert.deepEqual(resolveContextWindow("azure-production", 131072, { CT_CONTEXT_WINDOWS: "azure-production=786432,gpt-5.6-sol=262144" }), ["786432", "mapping"]);
+test("keeps context unused until the reserved baseline is consumed", () => {
+  assert.equal(contextUsed(12_000, 124_518), "0");
+  assert.equal(contextUsed(9_000, 124_518), "0");
+});
+
+test("caps exhausted context at 100 percent used", () => {
+  assert.equal(contextUsed(124_518, 124_518), "100");
+  assert.equal(contextUsed(200_000, 124_518), "100");
+});
+
+test("refuses a missing or unusable rollout context window", () => {
+  assert.throws(() => contextUsed(50_000, 12_000));
+  assert.throws(() => contextUsed(50_000, 0));
 });
