@@ -1,7 +1,6 @@
 # ct-codex
 
 [![CI](https://github.com/Michael5531/ct-codex/actions/workflows/verify.yml/badge.svg)](https://github.com/Michael5531/ct-codex/actions/workflows/verify.yml)
-[![npm](https://img.shields.io/npm/v/ct-codex?logo=npm&label=npm)](https://www.npmjs.com/package/ct-codex)
 [![License](https://img.shields.io/github/license/Michael5531/ct-codex)](LICENSE)
 [![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20WSL-0f766e)](#支持的平台)
 [![Status](https://img.shields.io/badge/status-pre--release-f59e0b)](CHANGELOG.zh-CN.md)
@@ -10,7 +9,7 @@
 
 `ct-codex` 用于安装 `ct`：一个面向 Codex CLI 的跨平台 tmux 启动器。它会让每个终端标签页拥有独立、可重新连接的 tmux session，并在 session 底部显示精简的 token 用量状态栏。
 
-> **预发布版本**：项目已可在本地使用和评审；npm 与 GitHub badges 会在首次公开发布后自动生效。
+> **预发布版本**：可立即通过 `npx -y github:Michael5531/ct-codex install` 从 GitHub 安装；首次发布到 npm 后会提供更短的 npm 命令。
 
 ## 支持的平台
 
@@ -25,9 +24,15 @@
 要求：Node.js 18+、Codex CLI、tmux、jq、lsof、ps、awk、sed、sort、tail。各系统的准确安装命令请参阅[平台安装说明](docs/platform-setup.zh-CN.md)。
 
 ```sh
-npx -y ct-codex install
+npx -y github:Michael5531/ct-codex install
 ct doctor
 ct codex
+```
+
+首次 npm 发布后，安装命令会变为：
+
+```sh
+npx -y ct-codex install
 ```
 
 安装器会将 `ct` 写入 `~/.local/bin/ct`。若该目录不在 `PATH` 中，请将以下内容加入 shell 配置后重新打开终端：
@@ -77,8 +82,8 @@ tmux 默认的窗口编号列表已隐藏，让状态栏只聚焦用量信息。
 ct codex [codex 参数...]
 ct doctor
 
-npx -y ct-codex doctor
-npx -y ct-codex uninstall
+npx -y github:Michael5531/ct-codex doctor
+npx -y github:Michael5531/ct-codex uninstall
 ```
 
 `uninstall` 只会删除由本包安装的 `ct`，不会删除无关的同名命令。

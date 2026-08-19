@@ -1,7 +1,6 @@
 # ct-codex
 
 [![CI](https://github.com/Michael5531/ct-codex/actions/workflows/verify.yml/badge.svg)](https://github.com/Michael5531/ct-codex/actions/workflows/verify.yml)
-[![npm](https://img.shields.io/npm/v/ct-codex?logo=npm&label=npm)](https://www.npmjs.com/package/ct-codex)
 [![License](https://img.shields.io/github/license/Michael5531/ct-codex)](LICENSE)
 [![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20WSL-0f766e)](#supported-platforms)
 [![Status](https://img.shields.io/badge/status-pre--release-f59e0b)](CHANGELOG.md)
@@ -10,7 +9,7 @@
 
 `ct-codex` installs `ct`, a portable tmux launcher for the Codex CLI. It gives each terminal tab its own persistent tmux session and renders a compact token-usage bar at the bottom of that session.
 
-> **Pre-release** — the project is ready for local use and review. npm and GitHub badges will become live after the first public release.
+> **Pre-release** — install directly from GitHub with `npx -y github:Michael5531/ct-codex install`. The shorter npm command will be available after the first npm release.
 
 ## Supported platforms
 
@@ -25,9 +24,15 @@ Native Windows is not supported because `ct` relies on tmux and POSIX utilities.
 Requirements: Node.js 18+, the Codex CLI, tmux, jq, lsof, ps, awk, sed, sort, and tail. See [platform setup](docs/platform-setup.md) for exact package-manager commands.
 
 ```sh
-npx -y ct-codex install
+npx -y github:Michael5531/ct-codex install
 ct doctor
 ct codex
+```
+
+After the first npm release, the install command will become:
+
+```sh
+npx -y ct-codex install
 ```
 
 The installer writes `ct` to `~/.local/bin/ct`. If that directory is not on your `PATH`, add this to your shell configuration and restart the shell:
@@ -77,8 +82,8 @@ The tmux window index list is deliberately hidden to keep the bar focused on usa
 ct codex [codex arguments...]
 ct doctor
 
-npx -y ct-codex doctor
-npx -y ct-codex uninstall
+npx -y github:Michael5531/ct-codex doctor
+npx -y github:Michael5531/ct-codex uninstall
 ```
 
 `uninstall` only removes a `ct` file installed by this package. It refuses to remove an unrelated command.

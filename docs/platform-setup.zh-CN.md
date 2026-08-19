@@ -15,7 +15,7 @@ brew install tmux jq
 macOS 已包含 `lsof`、`ps`、`awk`、`sed`、`sort` 和 `tail`。请单独安装并登录 Codex CLI，然后运行：
 
 ```sh
-npx -y ct-codex install
+npx -y github:Michael5531/ct-codex install
 ct doctor
 ct codex
 ```
@@ -26,7 +26,7 @@ ct codex
 sudo apt update
 sudo apt install -y tmux jq lsof
 
-npx -y ct-codex install
+npx -y github:Michael5531/ct-codex install
 ct doctor
 ct codex
 ```
