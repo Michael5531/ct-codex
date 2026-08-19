@@ -226,10 +226,10 @@ ct_status() {
   ct_bar_rest="$(ct_repeat '░' "$ct_bar_empty")"
 
   if [ "$ct_context_limit" -gt 0 ]; then
-    printf '#[fg=#475569]Context #[fg=%s,bold]%s#[fg=#475569]%s #[fg=%s,bold]%s%% #[fg=#94A3B8](%s/%s) #[fg=#64748B]%s #[fg=#64748B]│ #[fg=#E2E8F0,bold]Bill %s #[fg=#60A5FA](↑%s #[fg=#A78BFA]↓%s#[fg=#60A5FA]) #[fg=#64748B]│ #[fg=#A78BFA]Cache %s' \
+    printf '#[fg=#475569]Context #[fg=%s,bold]%s#[fg=#475569]%s #[fg=%s,bold]%s%% #[fg=#94A3B8](%s/%s) #[fg=#64748B]%s #[fg=#64748B]│ #[fg=#E2E8F0,bold]Uncached %s #[fg=#60A5FA](↑%s #[fg=#A78BFA]↓%s#[fg=#60A5FA]) #[fg=#64748B]│ #[fg=#A78BFA]Cache %s' \
       "$ct_context_color" "$ct_bar_fill" "$ct_bar_rest" "$ct_context_color" "$ct_context_pct" "$(ct_format_tokens "$ct_last_input")" "$(ct_format_tokens "$ct_context_limit")" "$ct_model" "$(ct_format_tokens "$ct_billed_total")" "$(ct_format_tokens "$ct_billed_input")" "$(ct_format_tokens "$ct_total_output")" "$(ct_format_tokens "$ct_cached_input")"
   else
-    printf '#[fg=#475569]Context #[fg=#64748B]%s (window unknown) #[fg=#64748B]│ #[fg=#E2E8F0,bold]Bill %s #[fg=#60A5FA](↑%s #[fg=#A78BFA]↓%s#[fg=#60A5FA]) #[fg=#64748B]│ #[fg=#A78BFA]Cache %s' \
+    printf '#[fg=#475569]Context #[fg=#64748B]%s (window unknown) #[fg=#64748B]│ #[fg=#E2E8F0,bold]Uncached %s #[fg=#60A5FA](↑%s #[fg=#A78BFA]↓%s#[fg=#60A5FA]) #[fg=#64748B]│ #[fg=#A78BFA]Cache %s' \
       "$ct_model" "$(ct_format_tokens "$ct_billed_total")" "$(ct_format_tokens "$ct_billed_input")" "$(ct_format_tokens "$ct_total_output")" "$(ct_format_tokens "$ct_cached_input")"
   fi
 }

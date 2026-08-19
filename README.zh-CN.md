@@ -15,7 +15,7 @@
 
 在长时间 Codex TUI 会话中，没有一个常驻、持续刷新的视图来显示当前 session 的 token 用量和上下文窗口。`/usage` 不展示 Azure Foundry 托管用量，也不是 Azure 账单计量器，因此无法为 Azure 托管部署提供这类视图。
 
-`ct` 会把当前 session 的本地遥测常驻显示在终端底部。**Bill** 仅为未命中缓存的输入 token 加输出 token，用于运行时追踪；它不是 Azure Foundry 发票，也不是账号级成本计算。
+`ct` 会把当前 session 的本地遥测常驻显示在终端底部。**Uncached** 仅为未命中缓存的输入 token 加输出 token，用于运行时追踪；它不是 Azure Foundry 发票，也不是账号级成本计算。
 
 ## 支持的平台
 
@@ -73,13 +73,13 @@ npx -y ct-codex install --bin-dir "$HOME/bin"
 tmux 底栏只追踪当前活动 pane 的 Codex rollout 文件：
 
 ```text
-Context ██░░░░░░░░░░ 4% (42.6k/1.05M) gpt-5.6-terra │ Bill 45.8k (↑42.6k ↓3.2k) │ Cache 338.4k
+Context ██░░░░░░░░░░ 4% (42.6k/1.05M) gpt-5.6-terra │ Uncached 45.8k (↑42.6k ↓3.2k) │ Cache 338.4k
 ```
 
 - **Context**：最新输入上下文，相对于所显示模型的上下文窗口。加宽到 12 格的进度条便于一眼判断剩余空间。
 - **模型窗口**：按当前 rollout 决定。`gpt-5.6-terra` 默认使用已确认的 1,050,000 token 窗口；其他模型会在可用时读取 Codex 写入的 `model_context_window` 遥测值。
-- **Bill**：未命中缓存的输入 token 加输出 token。
-- **Cache**：缓存命中的输入 token，单独显示且不计入 **Bill**。
+- **Uncached（未命中缓存）**：当前 session 累计的未命中缓存输入 token 加输出 token。这是 token 吞吐量，不是账单金额。
+- **Cache**：缓存命中的输入 token，单独显示且不计入 **Uncached**。
 
 tmux 默认的窗口编号列表已隐藏，让状态栏只聚焦用量信息。
 

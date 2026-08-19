@@ -15,7 +15,7 @@
 
 During long Codex TUI sessions, there is no persistent, continuously updated view of the current session's token usage or context window. `/usage` is not Azure Foundry hosted usage and is not an Azure billing meter, so it cannot provide that view for Azure-hosted deployments.
 
-`ct` keeps local, current-session telemetry visible at the bottom of the terminal while you work. Its **Bill** figure is uncached input plus output tokens for operational tracking only; it is not an Azure Foundry invoice or an account-level cost calculation.
+`ct` keeps local, current-session telemetry visible at the bottom of the terminal while you work. Its **Uncached** figure is uncached input plus output tokens for operational tracking only; it is not an Azure Foundry invoice or an account-level cost calculation.
 
 ## Supported platforms
 
@@ -73,13 +73,13 @@ npx -y ct-codex install --bin-dir "$HOME/bin"
 The bottom tmux bar tracks only the active pane's Codex rollout file:
 
 ```text
-Context ██░░░░░░░░░░ 4% (42.6k/1.05M) gpt-5.6-terra │ Bill 45.8k (↑42.6k ↓3.2k) │ Cache 338.4k
+Context ██░░░░░░░░░░ 4% (42.6k/1.05M) gpt-5.6-terra │ Uncached 45.8k (↑42.6k ↓3.2k) │ Cache 338.4k
 ```
 
 - **Context** is the latest input context against the displayed model's context window. The wider 12-cell bar makes remaining context easier to scan at a glance.
 - **Model window** is determined per active rollout. `gpt-5.6-terra` defaults to the confirmed 1,050,000-token window; for other models, Codex's `model_context_window` telemetry is used when available.
-- **Bill** is uncached input plus output tokens.
-- **Cache** is cached input tokens, shown separately and excluded from **Bill**.
+- **Uncached** is uncached input plus output tokens accumulated during this session. It is token throughput, not a billing amount.
+- **Cache** is cached input tokens, shown separately and excluded from **Uncached**.
 
 The tmux window index list is deliberately hidden to keep the bar focused on usage.
 
