@@ -96,6 +96,8 @@ tmux 底栏只追踪当前活动 pane 的 Codex rollout 文件：
 Context ██░░░░░░░░░░ 4% (42.6k/1.05M) gpt-5.6-terra │ Uncached 45.8k (↑42.6k ↓3.2k) │ Cache 338.4k
 ```
 
+![ct-codex 实际运行时的底部状态栏](docs/images/status-bar-live.png)
+
 - **Context**：最新输入上下文，相对于所显示模型的上下文窗口。加宽到 12 格的进度条便于一眼判断剩余空间。
 - **模型窗口**：按当前 rollout 决定。`gpt-5.6-terra` 默认使用已确认的 1,050,000 token 窗口；其他模型会在可用时读取 Codex 写入的 `model_context_window` 遥测值。
 - **Uncached（未命中缓存）**：当前 session 累计的未命中缓存输入 token 加输出 token。这是 token 吞吐量，不是账单金额。

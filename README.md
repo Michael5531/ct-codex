@@ -96,6 +96,8 @@ The bottom tmux bar tracks only the active pane's Codex rollout file:
 Context ██░░░░░░░░░░ 4% (42.6k/1.05M) gpt-5.6-terra │ Uncached 45.8k (↑42.6k ↓3.2k) │ Cache 338.4k
 ```
 
+![Live ct-codex bottom status bar](docs/images/status-bar-live.png)
+
 - **Context** is the latest input context against the displayed model's context window. The wider 12-cell bar makes remaining context easier to scan at a glance.
 - **Model window** is determined per active rollout. `gpt-5.6-terra` defaults to the confirmed 1,050,000-token window; for other models, Codex's `model_context_window` telemetry is used when available.
 - **Uncached** is uncached input plus output tokens accumulated during this session. It is token throughput, not a billing amount.
