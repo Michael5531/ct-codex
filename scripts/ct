@@ -99,7 +99,7 @@ ct_config_context_window() {
   ' "$ct_config_file"
 }
 
-ct_context_used_percent() {
+ct_context_metrics() {
   # Exact reimplementation of Codex CLI 0.148.0's
   # TokenUsage::percent_of_context_window_remaining().  Codex reserves a
   # 12,000-token baseline, rounds the remaining percentage, then derives
@@ -126,10 +126,22 @@ ct_context_used_percent() {
   # taking the complement, rather than rounding a separately calculated used
   # fraction.
   ct_remaining_percent="$(awk -v remaining="$ct_remaining_tokens" -v window="$ct_effective_window" 'BEGIN { print int((remaining / window) * 100 + 0.5) }')"
-  ct_context_used=$((100 - ct_remaining_percent))
-  [ "$ct_context_used" -lt 0 ] && ct_context_used=0
-  [ "$ct_context_used" -gt 100 ] && ct_context_used=100
-  printf '%s\n' "$ct_context_used"
+  ct_context_used_percent=$((100 - ct_remaining_percent))
+  [ "$ct_context_used_percent" -lt 0 ] && ct_context_used_percent=0
+  [ "$ct_context_used_percent" -gt 100 ] && ct_context_used_percent=100
+
+  # These two values use the exact same baseline and saturation as the
+  # percentage above. They are intentionally not raw total/window values:
+  # rendering raw values beside the normalized percentage would imply a
+  # different formula and make the display fail its own cross-check.
+  ct_effective_used="$ct_used_tokens"
+  [ "$ct_effective_used" -gt "$ct_effective_window" ] && ct_effective_used="$ct_effective_window"
+  printf '%s\t%s\t%s\n' "$ct_context_used_percent" "$ct_effective_used" "$ct_effective_window"
+}
+
+ct_context_used_percent() {
+  ct_metrics="$(ct_context_metrics "$1" "$2")" || return 1
+  printf '%s' "$ct_metrics" | awk -F '\t' '{ print $1 }'
 }
 
 ct_session_for_tty() {
@@ -189,7 +201,10 @@ ct_status() {
 
   ct_model="$(ct_model_for_rollout "$ct_rollout")"
   [ -n "$ct_model" ] || ct_model='unknown model'
-  ct_context_pct="$(ct_context_used_percent "$ct_last_total" "$ct_model_context_window" || true)"
+  ct_context_metrics_value="$(ct_context_metrics "$ct_last_total" "$ct_model_context_window" || true)"
+  ct_context_pct="$(printf '%s' "$ct_context_metrics_value" | awk -F '\t' '{print $1}')"
+  ct_effective_context_used="$(printf '%s' "$ct_context_metrics_value" | awk -F '\t' '{print $2}')"
+  ct_effective_context_window="$(printf '%s' "$ct_context_metrics_value" | awk -F '\t' '{print $3}')"
 
   ct_billed_input=$((ct_total_input - ct_cached_input))
   [ "$ct_billed_input" -lt 0 ] && ct_billed_input=0
@@ -213,8 +228,8 @@ ct_status() {
     ct_bar_empty=$((ct_bar_width - ct_bar_filled))
     ct_bar_fill="$(ct_repeat '█' "$ct_bar_filled")"
     ct_bar_rest="$(ct_repeat '░' "$ct_bar_empty")"
-    printf '#[fg=#475569]Context #[fg=%s,bold]%s#[fg=#475569]%s #[fg=%s,bold]%s%% used #[fg=#64748B]%s #[fg=#64748B]│ #[fg=#E2E8F0,bold]Uncached %s #[fg=#60A5FA](↑%s #[fg=#A78BFA]↓%s#[fg=#60A5FA]) #[fg=#64748B]│ #[fg=#A78BFA]Cache %s' \
-      "$ct_context_color" "$ct_bar_fill" "$ct_bar_rest" "$ct_context_color" "$ct_context_pct" "$ct_model" "$(ct_format_tokens "$ct_billed_total")" "$(ct_format_tokens "$ct_billed_input")" "$(ct_format_tokens "$ct_total_output")" "$(ct_format_tokens "$ct_cached_input")"
+    printf '#[fg=#475569]Context #[fg=%s,bold]%s#[fg=#475569]%s #[fg=%s,bold]%s%% used #[fg=#94A3B8](%s/%s) #[fg=#64748B]%s #[fg=#64748B]│ #[fg=#E2E8F0,bold]Uncached %s #[fg=#60A5FA](↑%s #[fg=#A78BFA]↓%s#[fg=#60A5FA]) #[fg=#64748B]│ #[fg=#A78BFA]Cache %s' \
+      "$ct_context_color" "$ct_bar_fill" "$ct_bar_rest" "$ct_context_color" "$ct_context_pct" "$(ct_format_tokens "$ct_effective_context_used")" "$(ct_format_tokens "$ct_effective_context_window")" "$ct_model" "$(ct_format_tokens "$ct_billed_total")" "$(ct_format_tokens "$ct_billed_input")" "$(ct_format_tokens "$ct_total_output")" "$(ct_format_tokens "$ct_cached_input")"
   else
     printf '#[fg=#475569]Context #[fg=#64748B]unavailable (no usable rollout window) #[fg=#64748B]│ #[fg=#E2E8F0,bold]Uncached %s #[fg=#60A5FA](↑%s #[fg=#A78BFA]↓%s#[fg=#60A5FA]) #[fg=#64748B]│ #[fg=#A78BFA]Cache %s' \
       "$(ct_format_tokens "$ct_billed_total")" "$(ct_format_tokens "$ct_billed_input")" "$(ct_format_tokens "$ct_total_output")" "$(ct_format_tokens "$ct_cached_input")"
@@ -312,6 +327,7 @@ case "${1:-}" in
   codex) ct_launch_codex "$@" ;;
   doctor) ct_doctor ;;
   _status) ct_status "${2:-}" ;;
+  _context-metrics) ct_context_metrics "${2:-}" "${3:-}" ;;
   _context-used) ct_context_used_percent "${2:-}" "${3:-}" ;;
   -h|--help|help|'') ct_usage ;;
   *) printf 'ct: unknown command: %s\n\n' "$1" >&2; ct_usage >&2; exit 2 ;;

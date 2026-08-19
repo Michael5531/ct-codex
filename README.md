@@ -87,10 +87,10 @@ Each outer terminal tab receives its own tmux session. Reattaching with `ct code
 The bottom tmux bar tracks only the active pane's Codex rollout file:
 
 ```text
-Context ██████░░░░░░ 50% used gpt-5.6-terra │ Uncached 1.1M (↑967.2k ↓144.1k) │ Cache 14.7M
+Context ██████░░░░░░ 50% used (56.3k/112.5k) gpt-5.6-terra │ Uncached 1.1M (↑967.2k ↓144.1k) │ Cache 14.7M
 ```
 
-- **Context** uses the active rollout's `last_token_usage.total_tokens` and `model_context_window`, with the same 12,000-token reserve and rounding order as Codex CLI. The 12-cell bar makes the result easy to scan at a glance.
+- **Context** uses the active rollout's `last_token_usage.total_tokens` and `model_context_window`, with the same 12,000-token reserve and rounding order as Codex CLI. Its `(used/window)` is restored and uses that same normalized calculation: `(last total − 12k) / (model window − 12k)`, capped at the effective window. It therefore cross-checks the bar instead of contradicting it.
 - **Uncached** is uncached input plus output tokens accumulated during this session. It is token throughput, not a billing amount.
 - **Cache** is cached input tokens, shown separately and excluded from **Uncached**.
 

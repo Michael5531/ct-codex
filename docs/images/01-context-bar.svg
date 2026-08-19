@@ -15,9 +15,9 @@
   <text x="258" y="773" fill="#fbbf24" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="27" font-weight="700">█████████</text>
   <text x="420" y="773" fill="#475569" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="27">░░░</text>
   <text x="470" y="773" fill="#fbbf24" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24" font-weight="700">73% used</text>
-  <text x="612" y="773" fill="#64748b" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24">gpt-5.6-terra  │</text>
-  <text x="868" y="773" fill="#e2e8f0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24" font-weight="700">Uncached 695.5k</text>
-  <text x="1111" y="773" fill="#60a5fa" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24">(↑587.9k ↓107.6k)</text>
+  <text x="620" y="773" fill="#94a3b8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24">(82.4k/112.5k)</text>
+  <text x="835" y="773" fill="#64748b" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24">gpt-5.6-terra  │</text>
+  <text x="1090" y="773" fill="#e2e8f0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24" font-weight="700">Uncached 695.5k</text>
   <path d="M365 680v-74h-112" stroke="#34d399" stroke-width="3" fill="none"/><circle cx="253" cy="606" r="6" fill="#34d399"/>
   <text x="160" y="575" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="28" font-weight="700">Capacity at a glance</text>
   <text x="160" y="622" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="23">Codex-compatible Context usage from the active rollout.</text>

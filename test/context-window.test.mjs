@@ -13,6 +13,12 @@ function contextUsed(totalTokens, contextWindow) {
   }).trim();
 }
 
+function contextMetrics(totalTokens, contextWindow) {
+  return execFileSync("sh", [launcher, "_context-metrics", String(totalTokens), String(contextWindow)], {
+    encoding: "utf8",
+  }).trim().split("\t");
+}
+
 test("reimplements Codex's 12k reserved-baseline context calculation", () => {
   // Codex CLI: effective=124,518-12,000=112,518; remaining=90,943;
   // round(90,943/112,518*100)=81; used=100-81=19.
@@ -22,6 +28,12 @@ test("reimplements Codex's 12k reserved-baseline context calculation", () => {
 test("rounds remaining first, then takes its complement like Codex", () => {
   // With this input Codex rounds remaining to 49, then takes the complement.
   assert.equal(contextUsed(69_259, 124_518), "51");
+});
+
+test("renders numerator and denominator from the same normalized calculation", () => {
+  // 94,439 raw total - 12,000 reserve = 82,439 user-controllable tokens.
+  // The denominator is likewise 124,518 - 12,000 = 112,518, yielding 73%.
+  assert.deepEqual(contextMetrics(94_439, 124_518), ["73", "82439", "112518"]);
 });
 
 test("keeps context unused until the reserved baseline is consumed", () => {

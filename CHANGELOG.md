@@ -21,3 +21,4 @@ All notable changes to this project will be documented in this file.
 - Context now reimplements Codex CLI 0.148.0's rollout-based calculation: `last_token_usage.total_tokens`, `model_context_window`, the 12,000-token baseline, and Codex's remaining-first rounding order.
 - Removed terminal screen scraping and the `/statusline` dependency. `/statusline` is now only an optional independent double-check.
 - Context is marked unavailable only when the rollout has no usable context window.
+- Restored the Context `(used/window)` detail, normalized with the same 12,000-token reserve as the percentage so the values cross-check.

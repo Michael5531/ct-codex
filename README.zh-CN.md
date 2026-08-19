@@ -87,10 +87,10 @@ npx -y ct-codex install --bin-dir "$HOME/bin"
 tmux 底栏只追踪当前活动 pane 的 Codex rollout 文件：
 
 ```text
-Context ██████░░░░░░ 50% used gpt-5.6-terra │ Uncached 1.1M (↑967.2k ↓144.1k) │ Cache 14.7M
+Context ██████░░░░░░ 50% used (56.3k/112.5k) gpt-5.6-terra │ Uncached 1.1M (↑967.2k ↓144.1k) │ Cache 14.7M
 ```
 
-- **Context**：使用活动 rollout 的 `last_token_usage.total_tokens` 与 `model_context_window`，并采用与 Codex CLI 相同的 12,000 token 预留及取整顺序。12 格进度条让结果更容易一眼看清。
+- **Context**：使用活动 rollout 的 `last_token_usage.total_tokens` 与 `model_context_window`，并采用与 Codex CLI 相同的 12,000 token 预留及取整顺序。`(used/window)` 已恢复，且采用同一口径：`(last total − 12k) / (model window − 12k)`，并在有效窗口上限截断；因此它能交叉验证进度条，而不会与进度条相互矛盾。
 - **Uncached（未命中缓存）**：当前 session 累计的未命中缓存输入 token 加输出 token。这是 token 吞吐量，不是账单金额。
 - **Cache**：缓存命中的输入 token，单独显示且不计入 **Uncached**。
 

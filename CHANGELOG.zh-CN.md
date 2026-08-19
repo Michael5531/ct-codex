@@ -21,3 +21,4 @@
 - Context 现复刻 Codex CLI 0.148.0 的 rollout 计算：`last_token_usage.total_tokens`、`model_context_window`、12,000 token 预留，以及先算剩余再取整的顺序。
 - 已移除终端屏幕抓取和 `/statusline` 依赖；`/statusline` 现在仅可作为独立的 double-check。
 - 只有 rollout 没有可用的 context window 时，Context 才会显示不可用。
+- 已恢复 Context 的 `(used/window)` 细节，并使用与百分比相同的 12,000 token 预留口径，使两者可以交叉验证。
