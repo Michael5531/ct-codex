@@ -1,0 +1,237 @@
+#!/usr/bin/env sh
+# ct — portable tmux launcher and status bar for the Codex CLI.
+# Supported shells: sh, bash, zsh, fish.  Supported hosts: macOS, Linux, WSL.
+
+set -eu
+
+# Session selection is deferred until launch. A plain "codex" default would
+# make every iTerm tab / terminal attach to the same tmux server session.
+ct_session_name=""
+ct_context_limit=1050000
+ct_codex_data_dir="$HOME/.codex/sessions"
+ct_self="$0"
+
+ct_usage() {
+  cat <<'EOF'
+Usage:
+  ct codex [codex arguments...]  Start or attach to this terminal's Codex tmux session.
+  ct doctor                      Check required local dependencies.
+
+The status bar shows context usage, uncached billable tokens, and cache hits.
+EOF
+}
+
+ct_need() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    printf 'ct: missing required command: %s\n' "$1" >&2
+    return 1
+  fi
+}
+
+ct_doctor() {
+  ct_result=0
+  for ct_dependency in tmux codex jq lsof ps awk sed sort tail; do
+    if command -v "$ct_dependency" >/dev/null 2>&1; then
+      printf 'ok      %s\n' "$ct_dependency"
+    else
+      printf 'missing %s\n' "$ct_dependency" >&2
+      ct_result=1
+    fi
+  done
+  return "$ct_result"
+}
+
+ct_mtime() {
+  # BSD stat (macOS) first, then GNU stat (Linux/WSL).
+  stat -f '%m' "$1" 2>/dev/null || stat -c '%Y' "$1" 2>/dev/null
+}
+
+ct_format_tokens() {
+  ct_value="$1"
+  if [ "$ct_value" -ge 1000000 ]; then
+    awk -v n="$ct_value" 'BEGIN { printf "%.1fM", n / 1000000 }'
+  elif [ "$ct_value" -ge 1000 ]; then
+    awk -v n="$ct_value" 'BEGIN { printf "%.1fk", n / 1000 }'
+  else
+    printf '%s' "$ct_value"
+  fi
+}
+
+ct_repeat() {
+  ct_repeat_char="$1"
+  ct_repeat_count="$2"
+  while [ "$ct_repeat_count" -gt 0 ]; do
+    printf '%s' "$ct_repeat_char"
+    ct_repeat_count=$((ct_repeat_count - 1))
+  done
+}
+
+ct_session_for_tty() {
+  ct_tty="${1#/dev/}"
+  ct_records=""
+
+  # Locate the Codex process in this pane, then the rollout record it has open.
+  # ps and lsof are available on macOS, Linux, and WSL.
+  for ct_pid in $(ps -axo pid=,tty=,command= 2>/dev/null | awk -v tty="$ct_tty" '
+    $2 == tty && $0 ~ /codex/ && $0 !~ /codex-code-mode-host/ { print $1 }
+  '); do
+    for ct_file in $(lsof -Fn -p "$ct_pid" 2>/dev/null | sed -n 's|^n\(.*\/\.codex\/sessions\/.*\.jsonl\)$|\1|p'); do
+      if [ -r "$ct_file" ]; then
+        ct_records="${ct_records}$(ct_mtime "$ct_file") $ct_file
+"
+      fi
+    done
+  done
+
+  printf '%s' "$ct_records" | sort -rn | awk 'NR == 1 { $1=""; sub(/^ /, ""); print }'
+}
+
+ct_status() {
+  ct_pane_tty="${1:-}"
+  if [ -z "$ct_pane_tty" ] || [ ! -d "$ct_codex_data_dir" ]; then
+    printf '#[fg=#64748B]waiting for Codex in this pane'
+    return
+  fi
+
+  ct_rollout="$(ct_session_for_tty "$ct_pane_tty")"
+  if [ -z "$ct_rollout" ] || [ ! -r "$ct_rollout" ]; then
+    printf '#[fg=#64748B]waiting for Codex in this pane'
+    return
+  fi
+
+  ct_usage_json="$(tail -n 400 "$ct_rollout" 2>/dev/null | jq -c 'select(.type == "event_msg" and .payload.type == "token_count") | .payload.info' 2>/dev/null | tail -n 1)"
+  if [ -z "$ct_usage_json" ]; then
+    printf '#[fg=#64748B]collecting usage…'
+    return
+  fi
+
+  ct_values="$(printf '%s' "$ct_usage_json" | jq -r '[
+    .last_token_usage.input_tokens // 0,
+    .total_token_usage.input_tokens // 0,
+    .total_token_usage.cached_input_tokens // 0,
+    .total_token_usage.output_tokens // 0
+  ] | @tsv')"
+  ct_last_input="$(printf '%s' "$ct_values" | awk -F '\t' '{print $1}')"
+  ct_total_input="$(printf '%s' "$ct_values" | awk -F '\t' '{print $2}')"
+  ct_cached_input="$(printf '%s' "$ct_values" | awk -F '\t' '{print $3}')"
+  ct_total_output="$(printf '%s' "$ct_values" | awk -F '\t' '{print $4}')"
+
+  ct_billed_input=$((ct_total_input - ct_cached_input))
+  [ "$ct_billed_input" -lt 0 ] && ct_billed_input=0
+  ct_billed_total=$((ct_billed_input + ct_total_output))
+  ct_context_pct=$((ct_last_input * 100 / ct_context_limit))
+  [ "$ct_context_pct" -gt 100 ] && ct_context_pct=100
+
+  if [ "$ct_context_pct" -ge 80 ]; then
+    ct_context_color='#FB7185'
+  elif [ "$ct_context_pct" -ge 60 ]; then
+    ct_context_color='#FBBF24'
+  else
+    ct_context_color='#34D399'
+  fi
+
+  ct_bar_width=10
+  ct_bar_filled=$((ct_context_pct * ct_bar_width / 100))
+  [ "$ct_context_pct" -gt 0 ] && [ "$ct_bar_filled" -eq 0 ] && ct_bar_filled=1
+  ct_bar_empty=$((ct_bar_width - ct_bar_filled))
+  ct_bar_fill="$(ct_repeat '█' "$ct_bar_filled")"
+  ct_bar_rest="$(ct_repeat '░' "$ct_bar_empty")"
+
+  printf '#[fg=#475569]Context #[fg=%s,bold]%s#[fg=#475569]%s #[fg=%s,bold]%s%% #[fg=#94A3B8](%s/1.05M) #[fg=#64748B]│ #[fg=#E2E8F0,bold]Bill %s #[fg=#60A5FA](↑%s #[fg=#A78BFA]↓%s#[fg=#60A5FA]) #[fg=#64748B]│ #[fg=#A78BFA]Cache %s' \
+    "$ct_context_color" "$ct_bar_fill" "$ct_bar_rest" "$ct_context_color" "$ct_context_pct" "$(ct_format_tokens "$ct_last_input")" "$(ct_format_tokens "$ct_billed_total")" "$(ct_format_tokens "$ct_billed_input")" "$(ct_format_tokens "$ct_total_output")" "$(ct_format_tokens "$ct_cached_input")"
+}
+
+ct_shell_quote() {
+  printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
+}
+
+ct_select_session_name() {
+  # An explicit name is useful for scripting and takes precedence over the
+  # automatic per-terminal name.
+  if [ -n "${CT_SESSION_NAME:-}" ]; then
+    ct_session_name="$CT_SESSION_NAME"
+    return
+  fi
+
+  # The terminal TTY identifies an iTerm tab, Terminal window, Linux terminal,
+  # or WSL terminal. Its parent shell PID distinguishes a newly opened shell
+  # if a host later reuses the same TTY number. Use ps instead of $PPID: that
+  # special variable is not guaranteed by every POSIX /bin/sh.
+  ct_terminal_tty="$(tty 2>/dev/null || printf 'unknown')"
+  ct_parent_pid="$(ps -o ppid= -p "$$" 2>/dev/null | awk 'NR == 1 { print $1 }')"
+  ct_parent_pid="${ct_parent_pid:-0}"
+  ct_terminal_key="$(printf '%s' "${ct_terminal_tty}-${ct_parent_pid}" | sed 's|^/dev/||; s|[^A-Za-z0-9_-]|-|g')"
+  ct_session_name="ct-codex-${ct_terminal_key}"
+}
+
+ct_configure_tmux() {
+  tmux set-option -t "$ct_session_name" status on
+  tmux set-option -t "$ct_session_name" status-position bottom
+  tmux set-option -t "$ct_session_name" status-interval 5
+  tmux set-option -t "$ct_session_name" status-style 'bg=#0F172A,fg=#CBD5E1'
+  tmux set-option -t "$ct_session_name" status-left-length 140
+  tmux set-option -t "$ct_session_name" status-right-length 20
+  tmux set-option -t "$ct_session_name" status-left "#($ct_self _status '#{pane_tty}') "
+  tmux set-option -t "$ct_session_name" status-right '#[fg=#64748B]%Y-%m-%d  #[fg=#94A3B8]%H:%M '
+  # Hide tmux's default window indexes; keep the bar focused on usage.
+  tmux set-option -t "$ct_session_name" window-status-format ''
+  tmux set-option -t "$ct_session_name" window-status-current-format ''
+}
+
+ct_launch_codex() {
+  shift
+  ct_need tmux
+  ct_workdir="$(pwd -P)"
+  ct_codex_bin="$(command -v codex || true)"
+  if [ -z "$ct_codex_bin" ]; then
+    printf 'ct: Codex CLI was not found in PATH. Install it, then retry.\n' >&2
+    exit 1
+  fi
+
+  # Calling ct from an existing tmux pane starts Codex there, avoiding nesting.
+  if [ -n "${TMUX:-}" ]; then
+    ct_session_name="$(tmux display-message -p '#S')"
+    ct_configure_tmux
+    exec "$ct_codex_bin" "$@"
+  fi
+
+  ct_select_session_name
+  if ! tmux has-session -t "$ct_session_name" 2>/dev/null; then
+    tmux new-session -d -s "$ct_session_name" -c "$ct_workdir"
+  fi
+  ct_configure_tmux
+
+  ct_pane_info="$(tmux display-message -p -t "$ct_session_name:" '#{pane_id} #{pane_current_command}')"
+  ct_target_pane="${ct_pane_info%% *}"
+  ct_pane_command="${ct_pane_info#* }"
+  case "$ct_pane_command" in
+    sh|bash|zsh|fish|login)
+      ct_launch_line="cd -- $(ct_shell_quote "$ct_workdir") && $(ct_shell_quote "$ct_codex_bin")"
+      for ct_arg in "$@"; do
+        ct_launch_line="$ct_launch_line $(ct_shell_quote "$ct_arg")"
+      done
+      tmux send-keys -t "$ct_target_pane" "$ct_launch_line" Enter
+      ;;
+    codex)
+      ;;
+    *)
+      ct_last_window_index="$(tmux list-windows -t "$ct_session_name" -F '#{window_index}' | sort -n | tail -n 1)"
+      ct_next_window_index=$((ct_last_window_index + 1))
+      ct_target_pane="$(tmux new-window -P -F '#{pane_id}' -t "$ct_session_name:$ct_next_window_index" -n codex -c "$ct_workdir")"
+      ct_launch_line="$(ct_shell_quote "$ct_codex_bin")"
+      for ct_arg in "$@"; do
+        ct_launch_line="$ct_launch_line $(ct_shell_quote "$ct_arg")"
+      done
+      tmux send-keys -t "$ct_target_pane" "$ct_launch_line" Enter
+      ;;
+  esac
+  exec tmux attach-session -t "$ct_session_name"
+}
+
+case "${1:-}" in
+  codex) ct_launch_codex "$@" ;;
+  doctor) ct_doctor ;;
+  _status) ct_status "${2:-}" ;;
+  -h|--help|help|'') ct_usage ;;
+  *) printf 'ct: unknown command: %s\n\n' "$1" >&2; ct_usage >&2; exit 2 ;;
+esac

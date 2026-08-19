@@ -1,0 +1,41 @@
+{
+  "name": "ct-codex",
+  "version": "0.1.0",
+  "description": "A portable tmux launcher and bottom token-usage bar for the Codex CLI.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "ct-codex": "bin/ct-codex.js"
+  },
+  "files": [
+    "bin/",
+    "scripts/",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "sh -n scripts/ct && npm test",
+    "pack:check": "npm pack --dry-run"
+  },
+  "keywords": [
+    "codex",
+    "openai",
+    "tmux",
+    "terminal",
+    "token-usage",
+    "wsl"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Michael5531/ct-codex.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Michael5531/ct-codex/issues"
+  },
+  "homepage": "https://github.com/Michael5531/ct-codex#readme"
+}
