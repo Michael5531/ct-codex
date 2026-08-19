@@ -7,7 +7,6 @@ set -eu
 # Session selection is deferred until launch. A plain "codex" default would
 # make every iTerm tab / terminal attach to the same tmux server session.
 ct_session_name=""
-ct_context_limit=1050000
 ct_codex_data_dir="$HOME/.codex/sessions"
 ct_self="$0"
 
@@ -17,7 +16,13 @@ Usage:
   ct codex [codex arguments...]  Start or attach to this terminal's Codex tmux session.
   ct doctor                      Check required local dependencies.
 
-The status bar shows context usage, uncached billable tokens, and cache hits.
+The status bar shows the active model's context usage, uncached billable
+tokens, and cache hits.
+
+Context-window configuration (highest priority first):
+  CT_CONTEXT_LIMIT=1050000          Override the window for one launch.
+  CT_CONTEXT_WINDOWS='model=tokens,...'
+                                     Set windows for named models/deployments.
 EOF
 }
 
@@ -66,6 +71,78 @@ ct_repeat() {
   done
 }
 
+ct_is_positive_integer() {
+  case "$1" in
+    ''|*[!0-9]*) return 1 ;;
+    *) [ "$1" -gt 0 ] 2>/dev/null ;;
+  esac
+}
+
+ct_context_limit_from_windows() {
+  ct_lookup_model="$1"
+  [ -n "${CT_CONTEXT_WINDOWS:-}" ] || return 1
+
+  # CT_CONTEXT_WINDOWS accepts comma-separated exact model mappings, such as
+  # "gpt-5.6-sol=262144,azure-my-deployment=1048576". Keep this POSIX-only so
+  # the launcher behaves the same on macOS, Linux, and WSL.
+  printf '%s\n' "$CT_CONTEXT_WINDOWS" | awk -F '[,=]' -v model="$ct_lookup_model" '
+    {
+      for (field = 1; field < NF; field += 2) {
+        if ($field == model && $(field + 1) ~ /^[0-9]+$/ && $(field + 1) > 0) {
+          print $(field + 1)
+          exit
+        }
+      }
+    }
+  '
+}
+
+ct_context_limit_for() {
+  ct_model="$1"
+  ct_reported_limit="$2"
+
+  # An explicit launch-level value is intended for a single Azure/custom
+  # deployment and must override every other source.
+  if ct_is_positive_integer "${CT_CONTEXT_LIMIT:-}"; then
+    printf '%s\t%s\n' "$CT_CONTEXT_LIMIT" 'override'
+    return
+  fi
+
+  ct_mapped_limit="$(ct_context_limit_from_windows "$ct_model" || true)"
+  if ct_is_positive_integer "$ct_mapped_limit"; then
+    printf '%s\t%s\n' "$ct_mapped_limit" 'mapping'
+    return
+  fi
+
+  # This is the confirmed public deployment window supplied for Terra. Other
+  # models deliberately use Codex's per-rollout telemetry below: providers may
+  # expose different effective windows for the same model name.
+  if [ "$ct_model" = 'gpt-5.6-terra' ]; then
+    printf '%s\t%s\n' '1050000' 'builtin'
+    return
+  fi
+
+  if ct_is_positive_integer "$ct_reported_limit"; then
+    printf '%s\t%s\n' "$ct_reported_limit" 'telemetry'
+    return
+  fi
+
+  printf '%s\t%s\n' '0' 'unknown'
+}
+
+ct_model_for_rollout() {
+  # Model changes can occur during a resumed thread, so use the latest model
+  # declaration from either turn context or thread settings. Codex emits a
+  # turn context for active work, so the recent log tail avoids rescanning a
+  # potentially large long-running rollout every five seconds.
+  tail -n 400 "$1" 2>/dev/null | jq -r '
+    if .type == "turn_context" then .payload.model
+    elif .type == "event_msg" and .payload.type == "thread_settings_applied" then .payload.thread_settings.model
+    else empty
+    end // empty
+  ' 2>/dev/null | tail -n 1
+}
+
 ct_session_for_tty() {
   ct_tty="${1#/dev/}"
   ct_records=""
@@ -109,18 +186,29 @@ ct_status() {
     .last_token_usage.input_tokens // 0,
     .total_token_usage.input_tokens // 0,
     .total_token_usage.cached_input_tokens // 0,
-    .total_token_usage.output_tokens // 0
+    .total_token_usage.output_tokens // 0,
+    .model_context_window // 0
   ] | @tsv')"
   ct_last_input="$(printf '%s' "$ct_values" | awk -F '\t' '{print $1}')"
   ct_total_input="$(printf '%s' "$ct_values" | awk -F '\t' '{print $2}')"
   ct_cached_input="$(printf '%s' "$ct_values" | awk -F '\t' '{print $3}')"
   ct_total_output="$(printf '%s' "$ct_values" | awk -F '\t' '{print $4}')"
+  ct_reported_context_limit="$(printf '%s' "$ct_values" | awk -F '\t' '{print $5}')"
+
+  ct_model="$(ct_model_for_rollout "$ct_rollout")"
+  [ -n "$ct_model" ] || ct_model='unknown model'
+  ct_limit_info="$(ct_context_limit_for "$ct_model" "$ct_reported_context_limit")"
+  ct_context_limit="$(printf '%s' "$ct_limit_info" | awk -F '\t' '{ print $1 }')"
 
   ct_billed_input=$((ct_total_input - ct_cached_input))
   [ "$ct_billed_input" -lt 0 ] && ct_billed_input=0
   ct_billed_total=$((ct_billed_input + ct_total_output))
-  ct_context_pct=$((ct_last_input * 100 / ct_context_limit))
-  [ "$ct_context_pct" -gt 100 ] && ct_context_pct=100
+  if [ "$ct_context_limit" -gt 0 ]; then
+    ct_context_pct=$((ct_last_input * 100 / ct_context_limit))
+    [ "$ct_context_pct" -gt 100 ] && ct_context_pct=100
+  else
+    ct_context_pct=0
+  fi
 
   if [ "$ct_context_pct" -ge 80 ]; then
     ct_context_color='#FB7185'
@@ -130,15 +218,20 @@ ct_status() {
     ct_context_color='#34D399'
   fi
 
-  ct_bar_width=10
+  ct_bar_width=12
   ct_bar_filled=$((ct_context_pct * ct_bar_width / 100))
   [ "$ct_context_pct" -gt 0 ] && [ "$ct_bar_filled" -eq 0 ] && ct_bar_filled=1
   ct_bar_empty=$((ct_bar_width - ct_bar_filled))
   ct_bar_fill="$(ct_repeat '█' "$ct_bar_filled")"
   ct_bar_rest="$(ct_repeat '░' "$ct_bar_empty")"
 
-  printf '#[fg=#475569]Context #[fg=%s,bold]%s#[fg=#475569]%s #[fg=%s,bold]%s%% #[fg=#94A3B8](%s/1.05M) #[fg=#64748B]│ #[fg=#E2E8F0,bold]Bill %s #[fg=#60A5FA](↑%s #[fg=#A78BFA]↓%s#[fg=#60A5FA]) #[fg=#64748B]│ #[fg=#A78BFA]Cache %s' \
-    "$ct_context_color" "$ct_bar_fill" "$ct_bar_rest" "$ct_context_color" "$ct_context_pct" "$(ct_format_tokens "$ct_last_input")" "$(ct_format_tokens "$ct_billed_total")" "$(ct_format_tokens "$ct_billed_input")" "$(ct_format_tokens "$ct_total_output")" "$(ct_format_tokens "$ct_cached_input")"
+  if [ "$ct_context_limit" -gt 0 ]; then
+    printf '#[fg=#475569]Context #[fg=%s,bold]%s#[fg=#475569]%s #[fg=%s,bold]%s%% #[fg=#94A3B8](%s/%s) #[fg=#64748B]%s #[fg=#64748B]│ #[fg=#E2E8F0,bold]Bill %s #[fg=#60A5FA](↑%s #[fg=#A78BFA]↓%s#[fg=#60A5FA]) #[fg=#64748B]│ #[fg=#A78BFA]Cache %s' \
+      "$ct_context_color" "$ct_bar_fill" "$ct_bar_rest" "$ct_context_color" "$ct_context_pct" "$(ct_format_tokens "$ct_last_input")" "$(ct_format_tokens "$ct_context_limit")" "$ct_model" "$(ct_format_tokens "$ct_billed_total")" "$(ct_format_tokens "$ct_billed_input")" "$(ct_format_tokens "$ct_total_output")" "$(ct_format_tokens "$ct_cached_input")"
+  else
+    printf '#[fg=#475569]Context #[fg=#64748B]%s (window unknown) #[fg=#64748B]│ #[fg=#E2E8F0,bold]Bill %s #[fg=#60A5FA](↑%s #[fg=#A78BFA]↓%s#[fg=#60A5FA]) #[fg=#64748B]│ #[fg=#A78BFA]Cache %s' \
+      "$ct_model" "$(ct_format_tokens "$ct_billed_total")" "$(ct_format_tokens "$ct_billed_input")" "$(ct_format_tokens "$ct_total_output")" "$(ct_format_tokens "$ct_cached_input")"
+  fi
 }
 
 ct_shell_quote() {
@@ -232,6 +325,7 @@ case "${1:-}" in
   codex) ct_launch_codex "$@" ;;
   doctor) ct_doctor ;;
   _status) ct_status "${2:-}" ;;
+  _context-limit) ct_context_limit_for "${2:-}" "${3:-}" ;;
   -h|--help|help|'') ct_usage ;;
   *) printf 'ct: unknown command: %s\n\n' "$1" >&2; ct_usage >&2; exit 2 ;;
 esac

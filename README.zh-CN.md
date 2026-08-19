@@ -11,6 +11,12 @@
 
 > **预发布版本**：可立即通过 `npx -y github:Michael5531/ct-codex install` 从 GitHub 安装；首次发布到 npm 后会提供更短的 npm 命令。
 
+## 它解决的痛点
+
+在长时间 Codex TUI 会话中，没有一个常驻、持续刷新的视图来显示当前 session 的 token 用量和上下文窗口。`/usage` 不展示 Azure Foundry 托管用量，也不是 Azure 账单计量器，因此无法为 Azure 托管部署提供这类视图。
+
+`ct` 会把当前 session 的本地遥测常驻显示在终端底部。**Bill** 仅为未命中缓存的输入 token 加输出 token，用于运行时追踪；它不是 Azure Foundry 发票，也不是账号级成本计算。
+
 ## 支持的平台
 
 - macOS：iTerm2、Terminal 及其他终端模拟器
@@ -67,14 +73,36 @@ npx -y ct-codex install --bin-dir "$HOME/bin"
 tmux 底栏只追踪当前活动 pane 的 Codex rollout 文件：
 
 ```text
-Context █░░░░░░░░░ 4% (42.6k/1.05M) │ Bill 45.8k (↑42.6k ↓3.2k) │ Cache 338.4k
+Context ██░░░░░░░░░░ 4% (42.6k/1.05M) gpt-5.6-terra │ Bill 45.8k (↑42.6k ↓3.2k) │ Cache 338.4k
 ```
 
-- **Context**：最新输入上下文，相对于 1,050,000 token 上下文窗口。
+- **Context**：最新输入上下文，相对于所显示模型的上下文窗口。加宽到 12 格的进度条便于一眼判断剩余空间。
+- **模型窗口**：按当前 rollout 决定。`gpt-5.6-terra` 默认使用已确认的 1,050,000 token 窗口；其他模型会在可用时读取 Codex 写入的 `model_context_window` 遥测值。
 - **Bill**：未命中缓存的输入 token 加输出 token。
 - **Cache**：缓存命中的输入 token，单独显示且不计入 **Bill**。
 
 tmux 默认的窗口编号列表已隐藏，让状态栏只聚焦用量信息。
+
+### 上下文窗口配置
+
+同一个模型名称在不同 Codex/provider 部署中可能有不同的有效窗口。为保证所有 Codex 模型的进度条数值正确，选择优先级依次是：单次启动覆盖、按模型/部署名称映射、内置 Terra 数值、rollout 自身遥测。没有数值时会显示 `window unknown`，绝不猜测数值。
+
+```sh
+# 单次启动时覆盖，适用于 Azure Foundry 部署。
+CT_CONTEXT_LIMIT=1048576 ct codex
+
+# 在 shell 配置中持久化按模型/部署名称设置的窗口。
+export CT_CONTEXT_WINDOWS='gpt-5.6-sol=262144,azure-production=1048576'
+ct codex
+```
+
+目前内置的映射为：
+
+| Codex 模型 | 上下文窗口 | 来源 |
+| --- | ---: | --- |
+| `gpt-5.6-terra` | 1,050,000 | 已确认的部署数值 |
+
+其他模型不会使用硬编码猜测值：当 Codex 提供时，活动 rollout 会给出其有效窗口的数值。如需覆盖自定义/Azure 部署的值，请添加明确的映射。
 
 ## 命令
 

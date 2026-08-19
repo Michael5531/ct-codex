@@ -11,6 +11,12 @@
 
 > **Pre-release** — install directly from GitHub with `npx -y github:Michael5531/ct-codex install`. The shorter npm command will be available after the first npm release.
 
+## The problem it solves
+
+During long Codex TUI sessions, there is no persistent, continuously updated view of the current session's token usage or context window. `/usage` is not Azure Foundry hosted usage and is not an Azure billing meter, so it cannot provide that view for Azure-hosted deployments.
+
+`ct` keeps local, current-session telemetry visible at the bottom of the terminal while you work. Its **Bill** figure is uncached input plus output tokens for operational tracking only; it is not an Azure Foundry invoice or an account-level cost calculation.
+
 ## Supported platforms
 
 - macOS — iTerm2, Terminal, and other terminal emulators
@@ -67,14 +73,36 @@ npx -y ct-codex install --bin-dir "$HOME/bin"
 The bottom tmux bar tracks only the active pane's Codex rollout file:
 
 ```text
-Context █░░░░░░░░░ 4% (42.6k/1.05M) │ Bill 45.8k (↑42.6k ↓3.2k) │ Cache 338.4k
+Context ██░░░░░░░░░░ 4% (42.6k/1.05M) gpt-5.6-terra │ Bill 45.8k (↑42.6k ↓3.2k) │ Cache 338.4k
 ```
 
-- **Context** is the latest input context against a 1,050,000-token window.
+- **Context** is the latest input context against the displayed model's context window. The wider 12-cell bar makes remaining context easier to scan at a glance.
+- **Model window** is determined per active rollout. `gpt-5.6-terra` defaults to the confirmed 1,050,000-token window; for other models, Codex's `model_context_window` telemetry is used when available.
 - **Bill** is uncached input plus output tokens.
 - **Cache** is cached input tokens, shown separately and excluded from **Bill**.
 
 The tmux window index list is deliberately hidden to keep the bar focused on usage.
+
+### Context-window configuration
+
+Codex/provider deployments can expose different effective windows for the same model name. To keep the bar correct across all Codex models, the selection order is: launch override, named model/deployment mapping, built-in Terra value, then the rollout's own telemetry. A missing value is shown as `window unknown`, never as a guessed number.
+
+```sh
+# One launch, useful for an Azure Foundry deployment.
+CT_CONTEXT_LIMIT=1048576 ct codex
+
+# Persist model/deployment-specific windows in your shell configuration.
+export CT_CONTEXT_WINDOWS='gpt-5.6-sol=262144,azure-production=1048576'
+ct codex
+```
+
+The installed built-in mapping is currently:
+
+| Codex model | Context window | Source |
+| --- | ---: | --- |
+| `gpt-5.6-terra` | 1,050,000 | Confirmed deployment value |
+
+Other models do not use hard-coded guesses: the active rollout supplies its numeric effective window when Codex reports it. Add an explicit mapping for a custom/Azure deployment when you need to override that value.
 
 ## Commands
 
