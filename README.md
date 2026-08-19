@@ -59,6 +59,26 @@ npx -y ct-codex install --bin-dir "$HOME/bin"
 - **Per-pane usage** — the bottom bar reads only the active pane's Codex rollout log.
 - **Portable setup** — one `npx` installer works on macOS, Linux, and WSL.
 
+## See it in action
+
+### Keep capacity and throughput visible
+
+![Context progress, active model, uncached tokens, and cache tokens in a terminal bar](docs/images/01-context-bar.svg)
+
+The progress bar shows the current prompt context against the active model window. **Uncached** tracks session token throughput separately, so it cannot be mistaken for context capacity or an invoice.
+
+### Keep terminal tabs independent
+
+![Two separate terminal tabs with independent ct-codex tmux sessions and token bars](docs/images/02-tab-isolation.svg)
+
+Each outer terminal tab receives its own tmux session. Reattaching with `ct codex` returns only to the session that belongs to that tab.
+
+### Match the window to the deployment
+
+![Configuration and priority flow for model-aware context windows](docs/images/03-model-windows.svg)
+
+Use a one-off override or a named mapping when an Azure/custom deployment has a specific context window.
+
 ## How it behaves
 
 - Run `ct codex` from any terminal tab.

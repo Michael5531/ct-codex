@@ -13,4 +13,5 @@ All notable changes to this project will be documented in this file.
 - Bottom status bar with context, billable tokens, and cache hits for the active Codex pane.
 - Model-aware context bar with a current-model label, 12-cell progress bar, per-rollout window telemetry, and explicit deployment overrides.
 - Renamed `Bill` to `Uncached` so the session token throughput is not mistaken for an invoice.
+- Added terminal-style feature visuals for context tracking, tab isolation, and model/deployment window configuration.
 - npm installer, bilingual documentation, and macOS/Linux verification workflow.

@@ -59,6 +59,26 @@ npx -y ct-codex install --bin-dir "$HOME/bin"
 - **按 pane 统计**：底栏只读取当前活动 pane 的 Codex rollout 日志。
 - **跨平台安装**：同一条 `npx` 安装命令适用于 macOS、Linux 与 WSL。
 
+## 功能截图
+
+### 常驻查看容量和吞吐量
+
+![终端状态栏中的上下文进度、当前模型、未命中缓存 token 与缓存 token](docs/images/01-context-bar.svg)
+
+进度条显示当前 prompt 上下文相对于活动模型窗口的占用。**Uncached** 单独统计本 session 的 token 吞吐量，因此不会被误认为上下文容量或发票。
+
+### 让每个终端标签页保持独立
+
+![两个独立的终端标签页，各自拥有 ct-codex tmux session 和 token 状态栏](docs/images/02-tab-isolation.svg)
+
+每个外层终端 tab 都会得到独立的 tmux session。在某个 tab 再次运行 `ct codex` 时，只会回到属于该 tab 的 session。
+
+### 为部署匹配正确的窗口
+
+![按模型识别上下文窗口的配置示例与优先级流程](docs/images/03-model-windows.svg)
+
+当 Azure/custom 部署有特定的上下文窗口时，可使用单次覆盖或按名称映射。
+
 ## 工作方式
 
 - 在任意终端标签页运行 `ct codex`。

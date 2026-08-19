@@ -10,6 +10,7 @@
   "files": [
     "bin/",
     "scripts/",
+    "docs/images/",
     "README.md",
     "README.zh-CN.md",
     "LICENSE"

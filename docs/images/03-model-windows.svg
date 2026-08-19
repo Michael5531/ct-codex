@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title description">
+  <title id="title">ct-codex model-aware context window selection</title>
+  <desc id="description">A terminal configuration example showing the context window priority order for custom and Azure deployments.</desc>
+  <rect width="1600" height="900" fill="#020617"/>
+  <text x="120" y="110" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="43" font-weight="700">Correct context windows for every deployment</text>
+  <text x="120" y="153" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="24">ct uses the most specific available value and never invents an unknown window.</text>
+  <rect x="120" y="220" width="1360" height="275" rx="22" fill="#0f172a" stroke="#334155" stroke-width="2"/>
+  <circle cx="158" cy="258" r="9" fill="#fb7185"/><circle cx="188" cy="258" r="9" fill="#fbbf24"/><circle cx="218" cy="258" r="9" fill="#34d399"/>
+  <text x="270" y="265" fill="#cbd5e1" font-family="ui-monospace, monospace" font-size="21">~/.zshrc</text>
+  <text x="164" y="340" fill="#34d399" font-family="ui-monospace, monospace" font-size="25">export CT_CONTEXT_WINDOWS=</text>
+  <text x="164" y="384" fill="#e2e8f0" font-family="ui-monospace, monospace" font-size="25">'azure-production=1048576,gpt-5.6-sol=262144'</text>
+  <text x="164" y="451" fill="#60a5fa" font-family="ui-monospace, monospace" font-size="25">CT_CONTEXT_LIMIT=1048576 ct codex</text>
+  <text x="925" y="451" fill="#64748b" font-family="ui-monospace, monospace" font-size="21"># one launch only</text>
+  <text x="120" y="585" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="31" font-weight="700">Context-window selection order</text>
+  <line x1="244" y1="675" x2="1356" y2="675" stroke="#334155" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="244" cy="675" r="38" fill="#0f766e"/><circle cx="615" cy="675" r="38" fill="#0369a1"/><circle cx="985" cy="675" r="38" fill="#6d28d9"/><circle cx="1356" cy="675" r="38" fill="#334155"/>
+  <text x="244" y="683" text-anchor="middle" fill="#fff" font-family="system-ui, sans-serif" font-size="24" font-weight="700">1</text>
+  <text x="615" y="683" text-anchor="middle" fill="#fff" font-family="system-ui, sans-serif" font-size="24" font-weight="700">2</text>
+  <text x="985" y="683" text-anchor="middle" fill="#fff" font-family="system-ui, sans-serif" font-size="24" font-weight="700">3</text>
+  <text x="1356" y="683" text-anchor="middle" fill="#fff" font-family="system-ui, sans-serif" font-size="24" font-weight="700">4</text>
+  <text x="244" y="754" text-anchor="middle" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="23" font-weight="700">Launch override</text>
+  <text x="244" y="787" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="18">CT_CONTEXT_LIMIT</text>
+  <text x="615" y="754" text-anchor="middle" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="23" font-weight="700">Named mapping</text>
+  <text x="615" y="787" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="18">CT_CONTEXT_WINDOWS</text>
+  <text x="985" y="754" text-anchor="middle" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="23" font-weight="700">Model default</text>
+  <text x="985" y="787" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="18">Terra: 1.05M</text>
+  <text x="1356" y="754" text-anchor="middle" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="23" font-weight="700">Rollout telemetry</text>
+  <text x="1356" y="787" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="18">model_context_window</text>
+</svg>

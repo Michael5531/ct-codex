@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title description">
+  <title id="title">ct-codex context progress bar</title>
+  <desc id="description">A terminal window showing a Codex session and its bottom context, uncached token, and cache metrics.</desc>
+  <rect width="1600" height="900" fill="#020617"/>
+  <rect x="100" y="100" width="1400" height="700" rx="24" fill="#0f172a" stroke="#334155" stroke-width="2"/>
+  <path d="M100 172h1400" stroke="#334155" stroke-width="2"/>
+  <circle cx="144" cy="136" r="11" fill="#fb7185"/><circle cx="180" cy="136" r="11" fill="#fbbf24"/><circle cx="216" cy="136" r="11" fill="#34d399"/>
+  <text x="800" y="144" text-anchor="middle" fill="#cbd5e1" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22">ct codex · codebase/ct-codex</text>
+  <text x="160" y="252" fill="#94a3b8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="27">› Review the pull request and summarize the risk.</text>
+  <text x="160" y="340" fill="#34d399" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="27">• I found two areas worth checking before merge.</text>
+  <text x="160" y="390" fill="#cbd5e1" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="27">  1. The parser handles missing telemetry safely.</text>
+  <text x="160" y="440" fill="#cbd5e1" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="27">  2. The context limit can be overridden per deployment.</text>
+  <rect x="100" y="724" width="1400" height="76" rx="0" fill="#111827"/>
+  <text x="136" y="773" fill="#64748b" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24">Context</text>
+  <text x="258" y="773" fill="#34d399" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="27" font-weight="700">█</text>
+  <text x="276" y="773" fill="#475569" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="27">░░░░░░░░░░░</text>
+  <text x="464" y="773" fill="#34d399" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24" font-weight="700">5%</text>
+  <text x="518" y="773" fill="#94a3b8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24">(59.1k/1.1M)</text>
+  <text x="718" y="773" fill="#64748b" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24">gpt-5.6-terra  │</text>
+  <text x="974" y="773" fill="#e2e8f0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24" font-weight="700">Uncached 695.5k</text>
+  <text x="1217" y="773" fill="#60a5fa" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24">(↑587.9k ↓107.6k)</text>
+  <path d="M365 680v-74h-112" stroke="#34d399" stroke-width="3" fill="none"/><circle cx="253" cy="606" r="6" fill="#34d399"/>
+  <text x="160" y="575" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="28" font-weight="700">Capacity at a glance</text>
+  <text x="160" y="622" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="23">Current prompt context / the active model window.</text>
+  <path d="M1150 680v-72h140" stroke="#60a5fa" stroke-width="3" fill="none"/><circle cx="1290" cy="608" r="6" fill="#60a5fa"/>
+  <text x="1040" y="575" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="28" font-weight="700">Session throughput</text>
+  <text x="1040" y="622" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="23">Uncached input + output, not an invoice.</text>
+</svg>

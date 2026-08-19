@@ -13,4 +13,5 @@
 - 当前 Codex pane 的 Context、Uncached 与 Cache 底部状态栏。
 - 按模型显示的 Context 底栏：当前模型标签、12 格进度条、每个 rollout 的窗口遥测，以及部署覆盖配置。
 - 将 `Bill` 更名为 `Uncached`，避免把 session 的 token 吞吐量误认为发票金额。
+- 新增终端风格功能图，展示上下文追踪、标签页隔离及模型/部署窗口配置。
 - npm 安装器、中英文文档，以及 macOS/Linux 验证工作流。
